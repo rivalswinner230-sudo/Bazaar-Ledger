@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bazaar Ledger — Skyblock Craft Flip Finder</title>
+<style>
+  :root {
+    --bg: #14151a;
+    --surface: #1c1e26;
+    --surface-raised: #21232d;
+    --border: #2c2f3a;
+    --border-strong: #3a3d4a;
+    --text: #ece9e2;
+    --text-dim: #9497a6;
+    --text-faint: #6b6e7a;
+    --gold: #d8a94c;
+    --gold-dim: #8c703a;
+    --green: #58b98a;
+    --green-dim: #2f4d3d;
+    --red: #d9695f;
+    --red-dim: #4d2f2c;
+    --amber: #d6a24a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    padding: 2.5rem 1.25rem 4rem;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  header { margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 0.5rem;
+    font-weight: 600;
+  }
+  h1 {
+    font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    font-size: 28px;
+    font-weight: 400;
+    margin: 0 0 0.4rem;
+    letter-spacing: 0.01em;
+  }
+  .sub { color: var(--text-dim); font-size: 14px; margin: 0; line-height: 1.5; }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .budget-field {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+  }
+  .budget-field input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 16px;
+    padding: 0.7rem 0.9rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .budget-field input:focus { border-color: var(--gold-dim); }
+  .budget-field input::placeholder { color: var(--text-faint); }
+
+  select, button.go {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 0.7rem 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  button.go {
+    background: var(--gold);
+    color: #201704;
+    border: none;
+    font-weight: 600;
+    padding: 0.7rem 1.3rem;
+  }
+  button.go:hover { background: #e6b95a; }
+  select:hover { border-color: var(--border-strong); }
+
+  .lookup-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1rem 1rem;
+    margin: 0 0 0.8rem;
+  }
+  .panel-label { font-size: 12px; color: var(--text-dim); margin: 0 0 0.6rem; }
+  .panel-label code {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: var(--gold);
+  }
+  .forget-link { color: var(--text-faint); text-decoration: underline; cursor: pointer; }
+  .forget-link:hover { color: var(--text-dim); }
+
+  .lookup-row { display: flex; gap: 8px; margin-bottom: 0.4rem; }
+  .lookup-row input {
+    flex: 1;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    padding: 0.55rem 0.7rem;
+    outline: none;
+  }
+  .lookup-row input:focus { border-color: var(--gold-dim); }
+  button.lookup-btn {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    padding: 0.55rem 0.9rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button.lookup-btn:hover { border-color: var(--gold-dim); }
+  button.lookup-btn:disabled { opacity: 0.5; cursor: default; }
+  .lookup-status { font-size: 12px; color: var(--text-dim); margin: 0 0 0.2rem; line-height: 1.5; word-break: break-word; user-select: text; }
+  .lookup-status.ok { color: var(--green); }
+  .lookup-status.bad { color: var(--red); }
+
+  .hint { font-size: 12px; color: var(--text-faint); margin: 0 0 2rem; }
+  .error-msg {
+    color: var(--red);
+    font-size: 13px;
+    margin: 0.5rem 0 0;
+    display: none;
+  }
+
+  .empty-state {
+    border: 1px dashed var(--border-strong);
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 14px;
+    display: none;
+  }
+
+  .results-note { font-size: 12px; color: var(--text-faint); margin: 0 0 1rem; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem 1.3rem 1.3rem;
+    margin-bottom: 14px;
+  }
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 0.7rem;
+  }
+  .rank-name { display: flex; align-items: baseline; gap: 10px; }
+  .rank {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    color: var(--gold);
+    background: rgba(216, 169, 76, 0.12);
+    border-radius: 4px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+  }
+  .item-name {
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-size: 18px;
+    font-weight: 400;
+  }
+  .collection-tag {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    white-space: nowrap;
+  }
+  .collection-tag.pass { color: var(--green); border-color: var(--green-dim); }
+  .collection-tag.fail { color: var(--red); border-color: var(--red-dim); }
+
+  .ingredients { margin: 0.6rem 0 0.9rem; border-top: 1px solid var(--border); padding-top: 0.7rem; }
+  .ing-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-dim);
+    padding: 3px 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .ing-row span:first-child { color: var(--text); font-family: inherit; }
+  .ing-qty { color: var(--text-faint); margin-right: 6px; }
+
+  .stat-row {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--border);
+    padding-top: 0.8rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-label { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; font-family: -apple-system, sans-serif; }
+  .stat-value { font-size: 14px; font-weight: 600; }
+  .stat-value.cost { color: var(--text); }
+  .stat-value.sell { color: var(--gold); }
+  .stat-value.profit { color: var(--green); }
+  .stat-value.margin { color: var(--text); }
+
+  .margin-bar {
+    margin-top: 0.7rem;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--surface-raised);
+    overflow: hidden;
+  }
+  .margin-fill { height: 100%; border-radius: 3px; }
+
+  footer {
+    margin-top: 2rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-faint);
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Skyblock bazaar tool</p>
+    <h1>Bazaar Ledger</h1>
+    <p class="sub">Enter what you've got to spend. Get the best craft flips your coins can actually afford — ingredients, collection notes, and the math, all in one place.</p>
+  </header>
+
+  <div class="controls">
+    <div class="budget-field">
+      <input type="text" id="budgetInput" placeholder="e.g. 10m, 500k, 2500000" />
+    </div>
+    <select id="sortSelect">
+      <option value="profit">Sort by profit</option>
+      <option value="margin">Sort by margin %</option>
+    </select>
+    <button class="go" id="findBtn">Find flips</button>
+  </div>
+  <div class="lookup-box">
+    <p class="panel-label">Check your real collection levels (via the official Hypixel API — your key never leaves this browser tab):</p>
+    <div class="lookup-row">
+      <input type="text" id="ignInput" placeholder="Minecraft username" />
+    </div>
+    <div class="lookup-row">
+      <input type="password" id="apiKeyInput" placeholder="Your Hypixel API key" />
+      <button class="lookup-btn" id="lookupBtn">Fetch my collections</button>
+    </div>
+    <p class="lookup-status" id="lookupStatus"></p>
+    <p class="panel-label">Get a key at <code>developer.hypixel.net</code> (log in and create one from the dashboard). Until you fetch, the list below shows everything regardless of what you've unlocked.</p>
+    <p class="panel-label"><a href="#" id="forgetLink" class="forget-link">Forget saved username and key</a></p>
+  </div>
+  <p class="error-msg" id="errorMsg"></p>
+  <p class="hint">Snapshot pulled from live bazaar craft-flip data during this chat — prices move fast, double-check before buying.</p>
+
+  <div class="empty-state" id="emptyState"></div>
+  <p class="results-note" id="resultsNote" style="display:none;"></p>
+  <div id="results"></div>
+
+  <footer>
+    Collection tags are best-effort. Some recipes may also need an NPC unlock, a minion tier, or a specific pet fusion that isn't collection-gated — check the recipe in your crafting table before committing coins. All flips here sell back through the Bazaar, not the Auction House, so exit liquidity is generally fast.
+  </footer>
+
+</div>
+
+<script>
+  const RECIPES = [
+    { name: "Mythic Griffin Upgrade Stone", cost: 112900000, profit: 21600000, margin: 19.2, req: null,
+      ingredients: [
+        { name: "Braided Griffin Feather", qty: 2, cost: 90000000 },
+        { name: "Mythos Fragment", qty: 48, cost: 2100000 },
+        { name: "Enchanted Ancient Claw", qty: 128, cost: 4400000 },
+        { name: "Base Griffin Upgrade Stone", qty: 1, cost: 2200000 },
+        { name: "Enchanted Gold Block", qty: 192, cost: 14200000 }
+      ]},
+    { name: "Shriveled Cornea", cost: 69400000, profit: 8100000, margin: 11.6, req: null,
+      ingredients: [
+        { name: "Shriveled Wasp", qty: 4, cost: 69100000 },
+        { name: "Enchanted Eye of Ender", qty: 64, cost: 336700 }
+      ]},
+    { name: "Entropy Suppressor", cost: 11200000, profit: 7800000, margin: 69.7, req: { key: "CHILI_PEPPER", label: "Chili Pepper IV", amount: 250 },
+      ingredients: [
+        { name: "Chili Pepper", qty: 32, cost: 4900000 },
+        { name: "Heavy Gabagool", qty: 16, cost: 5800000 },
+        { name: "Kelvin Inverter", qty: 4, cost: 550800 }
+      ]},
+    { name: "Jalapeno Book", cost: 24500000, profit: 6800000, margin: 27.6, req: { key: "CHILI_PEPPER", label: "Chili Pepper VII", amount: 5000 },
+      ingredients: [
+        { name: "Enchanted Paper", qty: 3, cost: 3300 },
+        { name: "Stuffed Chili Pepper", qty: 1, cost: 24500000 }
+      ]},
+    { name: "Null Blade", cost: 22300000, profit: 2800000, margin: 12.7, req: null,
+      ingredients: [
+        { name: "Null Ovoid", qty: 64, cost: 9100000 },
+        { name: "Null Edge", qty: 3, cost: 1200000 },
+        { name: "Enchanted Quartz Block", qty: 64, cost: 12000000 }
+      ]},
+    { name: "Winter Water Orb", cost: 7200000, profit: 2600000, margin: 36.4, req: null,
+      ingredients: [
+        { name: "Ice Hunk", qty: 128, cost: 159100 },
+        { name: "Enchanted Snow Block", qty: 64, cost: 33500 },
+        { name: "White Gift", qty: 64, cost: 204400 },
+        { name: "Water Orb", qty: 1, cost: 216100 },
+        { name: "Green Gift", qty: 16, cost: 119700 },
+        { name: "Blue Ice Hunk", qty: 32, cost: 6400000 }
+      ]},
+    { name: "Flycatcher", cost: 26500000, profit: 1900000, margin: 7.3, req: null,
+      ingredients: [
+        { name: "Tarantula Silk", qty: 102, cost: 25900000 },
+        { name: "Fly Swatter", qty: 1, cost: 539900 }
+      ]},
+    { name: "Flawless Amethyst Gemstone", cost: 940200, profit: 1300000, margin: 142.9, req: { key: "GEMSTONE_COLLECTION", label: "Gemstone IX", amount: 500000 },
+      ingredients: [ { name: "Fine Amethyst Gem", qty: 80, cost: 940200 } ]},
+    { name: "Uncommon Griffin Upgrade Stone", cost: 4400000, profit: 800100, margin: 18, req: null,
+      ingredients: [
+        { name: "Griffin Feather", qty: 8, cost: 2200000 },
+        { name: "Enchanted Gold", qty: 64, cost: 29300 },
+        { name: "Ancient Claw", qty: 32, cost: 15700 },
+        { name: "Base Griffin Upgrade Stone", qty: 1, cost: 2200000 }
+      ]},
+    { name: "Diamond Magmafish", cost: 10800000, profit: 790900, margin: 7.3, req: { key: "MAGMA_FISH", label: "Magmafish X", amount: 100000 },
+      ingredients: [ { name: "Magma Fish Gold", qty: 20, cost: 10800000 } ]},
+    { name: "Condensed Helianthus", cost: 16800000, profit: 754200, margin: 4.5, req: null,
+      ingredients: [ { name: "Helianthus", qty: 9, cost: 16800000 } ]},
+    { name: "Capsaicin Eyedrops", cost: 1200000, profit: 603700, margin: 51.2, req: { key: "CHILI_PEPPER", label: "Chili Pepper III", amount: 75 },
+      ingredients: [
+        { name: "Chili Pepper", qty: 4, cost: 606600 },
+        { name: "Exportable Carrots", qty: 128, cost: 1600000 },
+        { name: "Enchanted Carrot", qty: 128, cost: 66700 },
+        { name: "Water Hydra Head", qty: 1, cost: 1300000 }
+      ]},
+    { name: "Thorny Vines", cost: 1300000, profit: 480200, margin: 38, req: { key: "WILD_ROSE", label: "Wild Rose II", amount: 5000 },
+      ingredients: [
+        { name: "Enchanted Cactus", qty: 16, cost: 1300000 },
+        { name: "Enchanted Wild Rose", qty: 16, cost: 11000 },
+        { name: "Lever", qty: 1, cost: 11.3 }
+      ]},
+    { name: "Sunstone", cost: 798500, profit: 478500, margin: 59.9, req: { key: "DOUBLE_PLANT", label: "Sunflower VI", amount: 250000 },
+      ingredients: [
+        { name: "Compacted Sunflower", qty: 8, cost: 501400 },
+        { name: "Fine Topaz Gem", qty: 8, cost: 297100 }
+      ]},
+    { name: "Hypergolic Gabagool", cost: 4300000, profit: 449900, margin: 10.4, req: null,
+      ingredients: [
+        { name: "Heavy Gabagool", qty: 12, cost: 4300000 },
+        { name: "Sulphuric Coal", qty: 1, cost: 6800 }
+      ]},
+    { name: "Obsidian Tablet", cost: 2000000, profit: 440100, margin: 22.3, req: { key: "OBSIDIAN", label: "Obsidian IX", amount: 50000 },
+      ingredients: [
+        { name: "Enchanted Obsidian", qty: 192, cost: 558500 },
+        { name: "Summoning Eye", qty: 1, cost: 1400000 }
+      ]},
+    { name: "Silex", cost: 3100000, profit: 308400, margin: 10.1, req: { key: "HARD_STONE", label: "Hard Stone VII", amount: 1000000 },
+      ingredients: [ { name: "Concentrated Stone", qty: 9, cost: 3100000 } ]},
+    { name: "Flawless Jasper Gemstone", cost: 4900000, profit: 277800, margin: 5.7, req: { key: "GEMSTONE_COLLECTION", label: "Gemstone IX", amount: 500000 },
+      ingredients: [ { name: "Fine Jasper Gem", qty: 80, cost: 4900000 } ]},
+    { name: "Presumed Gallon of Red Paint", cost: 729700, profit: 272800, margin: 37.4, req: { key: "HEMOVIBE", label: "Hemovibe VIII", amount: 150000 },
+      ingredients: [
+        { name: "Enchanted Cobblestone", qty: 32, cost: 13900 },
+        { name: "Hemoglass", qty: 32, cost: 528800 },
+        { name: "Enchanted Dark Oak Log", qty: 80, cost: 187000 }
+      ]},
+    { name: "Shiny Prism", cost: 167800, profit: 272100, margin: 162.2, req: { key: "GLOWSTONE_DUST", label: "Glowstone Dust VI", amount: 10000 },
+      ingredients: [
+        { name: "Enchanted Glowstone Dust", qty: 80, cost: 147400 },
+        { name: "Gazing Pearl", qty: 10, cost: 20400 }
+      ]},
+    { name: "Flawless Amber Gemstone", cost: 2400000, profit: 265300, margin: 11.2, req: { key: "GEMSTONE_COLLECTION", label: "Gemstone IX", amount: 500000 },
+      ingredients: [ { name: "Fine Amber Gem", qty: 80, cost: 2400000 } ]},
+    { name: "Moonstone", cost: 637200, profit: 245800, margin: 38.6, req: { key: "MOONFLOWER", label: "Moonflower VI", amount: 250000 },
+      ingredients: [
+        { name: "Compacted Moonflower", qty: 8, cost: 543200 },
+        { name: "Fine Amethyst Gem", qty: 8, cost: 94000 }
+      ]},
+    { name: "Great White Tooth Meal", cost: 4800000, profit: 245300, margin: 5.2, req: null,
+      ingredients: [
+        { name: "Great White Shark Tooth", qty: 4, cost: 4800000 },
+        { name: "Enchanted Bone", qty: 1, cost: 663.6 }
+      ]},
+    { name: "Mithril Infusion", cost: 4000000, profit: 242900, margin: 6.1, req: { key: "MITHRIL_ORE", label: "Mithril VIII", amount: 500000 },
+      ingredients: [
+        { name: "Enchanted Mithril", qty: 512, cost: 653600 },
+        { name: "Magma Bucket", qty: 1, cost: 3300000 }
+      ]},
+    { name: "Colossal Experience Bottle", cost: 1700000, profit: 209300, margin: 12.4, req: null,
+      ingredients: [
+        { name: "Colossal Exp Bottle Upgrade", qty: 1, cost: 1100000 },
+        { name: "Titanic Exp Bottle", qty: 1, cost: 589800 }
+      ]},
+    { name: "Dwarven Super Compactor", cost: 206200, profit: 198400, margin: 96.2, req: { key: "MITHRIL_ORE", label: "Mithril VI", amount: 100000 },
+      ingredients: [
+        { name: "Enchanted Mithril", qty: 56, cost: 71500 },
+        { name: "Auto Smelter", qty: 1, cost: 153.1 },
+        { name: "Super Compactor 3000", qty: 1, cost: 134500 }
+      ]},
+    { name: "Flawless Jade Gemstone", cost: 2100000, profit: 195500, margin: 9.2, req: { key: "GEMSTONE_COLLECTION", label: "Gemstone IX", amount: 500000 },
+      ingredients: [ { name: "Fine Jade Gem", qty: 80, cost: 2100000 } ]},
+    { name: "Lesser Soulflow Engine", cost: 1500000, profit: 183000, margin: 12, req: null,
+      ingredients: [
+        { name: "Null Ovoid", qty: 6, cost: 851400 },
+        { name: "Enchanted Eye of Ender", qty: 48, cost: 252500 },
+        { name: "Enchanted Iron Block", qty: 8, cost: 423700 }
+      ]},
+    { name: "Meteor Shard", cost: 511700, profit: 181100, margin: 35.4, req: null,
+      ingredients: [
+        { name: "Silver Fang", qty: 40, cost: 324000 },
+        { name: "Starfall", qty: 20, cost: 38500 },
+        { name: "Tentacle Meat", qty: 10, cost: 149200 }
+      ]},
+    { name: "Blaze Wax", cost: 191200, profit: 180100, margin: 94.2, req: { key: "BLAZE_ROD", label: "Blaze Rod VI", amount: 10000 },
+      ingredients: [
+        { name: "Enchanted Blaze Powder", qty: 80, cost: 159700 },
+        { name: "Bezos", qty: 10, cost: 31500 }
+      ]},
+    { name: "Superb Carrot Candy", cost: 2200000, profit: 175200, margin: 8.1, req: { key: "CARROT_ITEM", label: "Carrot IX", amount: 100000 },
+      ingredients: [
+        { name: "Enchanted Golden Carrot", qty: 24, cost: 2000000 },
+        { name: "Great Carrot Candy", qty: 1, cost: 171200 }
+      ]},
+    { name: "Tessellated Ender Pearl", cost: 4500000, profit: 173600, margin: 3.9, req: null,
+      ingredients: [
+        { name: "Enchanted Lapis Lazuli Block", qty: 32, cost: 3100000 },
+        { name: "Absolute Ender Pearl", qty: 80, cost: 1400000 }
+      ]},
+    { name: "Mangrove Gem", cost: 188500, profit: 166800, margin: 88.5, req: { key: "MANGROVE_LOG", label: "Mangrove Log V", amount: 10000 },
+      ingredients: [ { name: "Enchanted Mangrove Log", qty: 144, cost: 188500 } ]},
+    { name: "Heavy Gabagool", cost: 357500, profit: 160400, margin: 44.9, req: null,
+      ingredients: [
+        { name: "Fuel Gabagool", qty: 24, cost: 350600 },
+        { name: "Sulphuric Coal", qty: 1, cost: 6800 }
+      ]},
+    { name: "Nightswitch", cost: 51400, profit: 157600, margin: 306.7, req: { key: "MOONFLOWER", label: "Moonflower II", amount: 5000 },
+      ingredients: [
+        { name: "Enchanted Moonflower", qty: 64, cost: 26900 },
+        { name: "Enchanted Endstone", qty: 64, cost: 24500 },
+        { name: "Lever", qty: 1, cost: 11.3 }
+      ]},
+    { name: "Flawless Citrine Gemstone", cost: 1200000, profit: 154500, margin: 12.6, req: { key: "GEMSTONE_COLLECTION", label: "Gemstone IX", amount: 500000 },
+      ingredients: [ { name: "Fine Citrine Gem", qty: 80, cost: 1200000 } ]},
+    { name: "Flawless Sapphire Gemstone", cost: 2400000, profit: 148000, margin: 6.2, req: { key: "GEMSTONE_COLLECTION", label: "Gemstone IX", amount: 500000 },
+      ingredients: [ { name: "Fine Sapphire Gem", qty: 80, cost: 2400000 } ]},
+    { name: "Bachelor's Rose", cost: 833500, profit: 142700, margin: 17.1, req: { key: "WILD_ROSE", label: "Wild Rose VII", amount: 500000 },
+      ingredients: [
+        { name: "Compacted Wild Rose", qty: 8, cost: 831700 },
+        { name: "Red Rose", qty: 64, cost: 1800 }
+      ]},
+    { name: "Displaced Leech", cost: 58900, profit: 136600, margin: 231.7, req: { key: "HEMOVIBE", label: "Hemovibe V", amount: 15000 },
+      ingredients: [
+        { name: "Enchanted Bone", qty: 64, cost: 42400 },
+        { name: "Hemoglass", qty: 1, cost: 16500 }
+      ]},
+    { name: "Horns of Torment", cost: 367300, profit: 129000, margin: 35.1, req: { key: "MUTTON", label: "Mutton IX", amount: 50000 },
+      ingredients: [
+        { name: "Enchanted Mutton", qty: 192, cost: 326100 },
+        { name: "Horn of Taurus", qty: 32, cost: 41200 }
+      ]},
+    { name: "X-Large Storage", cost: 2100000, profit: 111700, margin: 5.4, req: null,
+      ingredients: [
+        { name: "Minion Storage Expander", qty: 1, cost: 1600000 },
+        { name: "Large Enchanted Chest", qty: 1, cost: 475500 }
+      ]},
+    { name: "Acacia Birdhouse", cost: 700400, profit: 109400, margin: 15.6, req: { key: "LOG_2", label: "Acacia Log IX", amount: 25000 },
+      ingredients: [ { name: "Enchanted Acacia Log", qty: 384, cost: 700400 } ]},
+    { name: "Exalted Lushlilac Bonbon", cost: 212200, profit: 99900, margin: 47.1, req: { key: "LUSHLILAC", label: "Lushlilac V", amount: 500 },
+      ingredients: [
+        { name: "Lushlilac", qty: 64, cost: 281.6 },
+        { name: "Enchanted Sea Lumies", qty: 4, cost: 212000 }
+      ]},
+    { name: "Compost Bundle", cost: 2600000, profit: 95500, margin: 3.7, req: null,
+      ingredients: [ { name: "Compost", qty: 160, cost: 2600000 } ]},
+    { name: "Searing Stone", cost: 155300, profit: 89100, margin: 57.4, req: { key: "MAGMA_CREAM", label: "Magma Cream VI", amount: 10000 },
+      ingredients: [
+        { name: "Enchanted Magma Cream", qty: 50, cost: 113100 },
+        { name: "Magma Chunk", qty: 50, cost: 32500 },
+        { name: "Enchanted Netherrack", qty: 30, cost: 9700 }
+      ]},
+    { name: "Enchanted Redstone Lamp", cost: 173900, profit: 83900, margin: 48.3, req: { key: "GLOWSTONE_DUST", label: "Glowstone Dust VI", amount: 10000 },
+      ingredients: [
+        { name: "Enchanted Redstone", qty: 128, cost: 114900 },
+        { name: "Enchanted Glowstone Dust", qty: 32, cost: 59000 }
+      ]},
+    { name: "Water Orb", cost: 214000, profit: 80400, margin: 37.6, req: null,
+      ingredients: [
+        { name: "Enchanted Raw Fish", qty: 16, cost: 18700 },
+        { name: "Enchanted Sponge", qty: 8, cost: 15900 },
+        { name: "Enchanted Raw Salmon", qty: 16, cost: 25100 },
+        { name: "Enchanted Prismarine Shard", qty: 16, cost: 6300 },
+        { name: "Enchanted Water Lily", qty: 16, cost: 31600 },
+        { name: "Enchanted Prismarine Crystals", qty: 16, cost: 6400 },
+        { name: "Enchanted Clay Ball", qty: 16, cost: 24000 },
+        { name: "Enchanted Pufferfish", qty: 16, cost: 36300 },
+        { name: "Enchanted Clownfish", qty: 16, cost: 49700 }
+      ]},
+    { name: "Condensed Fermento", cost: 2300000, profit: 79400, margin: 3.4, req: null,
+      ingredients: [ { name: "Fermento", qty: 9, cost: 2300000 } ]},
+    { name: "Plasma Bucket", cost: 10000000, profit: 75200, margin: 0.8, req: null,
+      ingredients: [
+        { name: "Magma Bucket", qty: 2, cost: 6800000 },
+        { name: "Heat Core", qty: 1, cost: 3200000 }
+      ]},
+    { name: "Precursor Apparatus", cost: 993700, profit: 70300, margin: 7.1, req: null,
+      ingredients: [
+        { name: "Control Switch", qty: 1, cost: 144700 },
+        { name: "Electron Transmitter", qty: 1, cost: 142700 },
+        { name: "FTX 3070", qty: 1, cost: 151800 },
+        { name: "Robotron Reflector", qty: 1, cost: 236900 },
+        { name: "Superlite Motor", qty: 1, cost: 84900 },
+        { name: "Synthetic Heart", qty: 1, cost: 232700 }
+      ]}
+  ];
+
+  function formatCoins(n) {
+    if (n >= 1000000000) return (n / 1000000000).toFixed(2).replace(/\.00$/, "") + "b";
+    if (n >= 1000000) return (n / 1000000).toFixed(2).replace(/\.00$/, "") + "m";
+    if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+    return Math.round(n).toLocaleString();
+  }
+
+  function parseBudget(raw) {
+    if (!raw) return null;
+    const cleaned = raw.trim().toLowerCase().replace(/,/g, "");
+    const match = cleaned.match(/^(\d+(\.\d+)?)\s*([kmb]?)$/);
+    if (!match) return null;
+    const num = parseFloat(match[1]);
+    const suffix = match[3];
+    if (suffix === "k") return num * 1000;
+    if (suffix === "m") return num * 1000000;
+    if (suffix === "b") return num * 1000000000;
+    return num;
+  }
+
+  function marginColor(margin) {
+    if (margin >= 60) return "#58b98a";
+    if (margin >= 25) return "#d6a24a";
+    return "#c9705f";
+  }
+
+  let myCollections = null;
+
+  function render(budget, sortKey) {
+    const results = document.getElementById("results");
+    const emptyState = document.getElementById("emptyState");
+    const resultsNote = document.getElementById("resultsNote");
+    results.innerHTML = "";
+
+    const pool = myCollections
+      ? RECIPES.filter(r => r.req === null || (myCollections[r.req.key] || 0) >= r.req.amount)
+      : RECIPES;
+    let affordable = pool.filter(r => r.cost <= budget);
+
+    if (affordable.length === 0) {
+      emptyState.style.display = "block";
+      if (pool.length === 0) {
+        emptyState.textContent = "No flips are craftable with your current collections.";
+      } else {
+        const cheapest = pool.reduce((a, b) => a.cost < b.cost ? a : b);
+        emptyState.textContent = "No flips fit that budget" + (myCollections ? " that you can currently craft" : "") + ". The cheapest match is " + cheapest.name + " at " + formatCoins(cheapest.cost) + " coins.";
+      }
+      resultsNote.style.display = "none";
+      return;
+    }
+    emptyState.style.display = "none";
+
+    if (sortKey === "margin") {
+      affordable.sort((a, b) => b.margin - a.margin);
+    } else {
+      affordable.sort((a, b) => b.profit - a.profit);
+    }
+
+    const top = affordable.slice(0, 10);
+    resultsNote.style.display = "block";
+    resultsNote.textContent = "Showing " + top.length + " of " + affordable.length + " flips that fit " + formatCoins(budget) + " coins" + (myCollections ? ", filtered to what you can craft" : " (fetch your collections to filter to what you can craft)") + ", sorted by " + (sortKey === "margin" ? "margin %" : "profit") + ".";
+
+    top.forEach((r, i) => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const ingredientsHtml = r.ingredients.map(ing =>
+        '<div class="ing-row"><span><span class="ing-qty">' + ing.qty + '×</span>' + ing.name + '</span><span>' + formatCoins(ing.cost) + '</span></div>'
+      ).join("");
+
+      const sellPrice = r.cost + r.profit;
+      const barColor = marginColor(r.margin);
+      const barWidth = Math.min(r.margin, 150) / 150 * 100;
+
+      let tagHtml;
+      if (r.req === null) {
+        tagHtml = '<span class="collection-tag">No collection needed</span>';
+      } else if (myCollections) {
+        const have = myCollections[r.req.key] || 0;
+        const pass = have >= r.req.amount;
+        tagHtml = '<span class="collection-tag ' + (pass ? "pass" : "fail") + '">' + (pass ? "✓ " : "✗ needs ") + r.req.label + '</span>';
+      } else {
+        tagHtml = '<span class="collection-tag">Requires ' + r.req.label + '</span>';
+      }
+
+      card.innerHTML =
+        '<div class="card-top">' +
+          '<div class="rank-name">' +
+            '<span class="rank">#' + (i + 1) + '</span>' +
+            '<span class="item-name">' + r.name + '</span>' +
+          '</div>' +
+          tagHtml +
+        '</div>' +
+        '<div class="ingredients">' + ingredientsHtml + '</div>' +
+        '<div class="stat-row">' +
+          '<div class="stat"><span class="stat-label">Cost</span><span class="stat-value cost">' + formatCoins(r.cost) + '</span></div>' +
+          '<div class="stat"><span class="stat-label">Sells for</span><span class="stat-value sell">' + formatCoins(sellPrice) + '</span></div>' +
+          '<div class="stat"><span class="stat-label">Profit</span><span class="stat-value profit">+' + formatCoins(r.profit) + '</span></div>' +
+          '<div class="stat"><span class="stat-label">Margin</span><span class="stat-value margin">' + r.margin + '%</span></div>' +
+        '</div>' +
+        '<div class="margin-bar"><div class="margin-fill" style="width:' + barWidth + '%; background:' + barColor + ';"></div></div>';
+
+      results.appendChild(card);
+    });
+  }
+
+  async function safeJson(res) {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error("got an unreadable response instead of data");
+    }
+  }
+
+  async function lookupUuid(username) {
+    try {
+      const res = await fetch("https://playerdb.co/api/player/minecraft/" + encodeURIComponent(username));
+      if (res.ok) {
+        const data = await safeJson(res);
+        if (data && data.data && data.data.player && data.data.player.id) return data.data.player.id;
+      }
+    } catch (e) { }
+    const res2 = await fetch("https://api.mowojang.com/users/profiles/minecraft/" + encodeURIComponent(username));
+    if (!res2.ok) throw new Error("couldn't find that username");
+    const data2 = await safeJson(res2);
+    if (!data2 || !data2.id) throw new Error("couldn't find that username");
+    return data2.id;
+  }
+
+  function normUuid(u) {
+    return (u || "").replace(/-/g, "").toLowerCase();
+  }
+
+  async function fetchCollections(username, apiKey) {
+    const uuid = await lookupUuid(username);
+    const normTarget = normUuid(uuid);
+
+    const res = await fetch("https://api.hypixel.net/v2/skyblock/profiles?uuid=" + encodeURIComponent(uuid), {
+      headers: { "API-Key": apiKey }
+    });
+    const data = await safeJson(res);
+    if (!data.success) throw new Error(data.cause || "Hypixel API rejected the request");
+    if (!data.profiles || data.profiles.length === 0) throw new Error("no SkyBlock profiles found for that account");
+
+    function findMemberKey(members) {
+      if (!members) return null;
+      for (const k in members) {
+        if (normUuid(k) === normTarget) return k;
+      }
+      return null;
+    }
+
+    let bestProfile = null, bestMemberKey = null, bestSave = -1;
+    for (const p of data.profiles) {
+      const mk = findMemberKey(p.members);
+      if (!mk) continue;
+      const m = p.members[mk];
+      const save = (m && m.last_save) || 0;
+      if (p.selected || save > bestSave) {
+        bestProfile = p; bestMemberKey = mk;
+        if (p.selected) break;
+        bestSave = save;
+      }
+    }
+    if (!bestProfile || !bestMemberKey) {
+      const debugInfo = data.profiles.map((p, i) => {
+        const keys = p.members ? Object.keys(p.members) : [];
+        return "profile " + (i + 1) + " (" + (p.cute_name || "?") + "): members=[" + keys.join(", ") + "]";
+      }).join(" | ");
+      throw new Error("resolved UUID " + uuid + " (normalized " + normTarget + ") didn't match. Found " + data.profiles.length + " profile(s): " + debugInfo);
+    }
+    const member = bestProfile.members[bestMemberKey];
+    const cuteName = bestProfile.cute_name || "profile";
+
+    const found = {};
+    const collectionObj = member.collection || (member.player_data && member.player_data.collection);
+    if (collectionObj && typeof collectionObj === "object") {
+      for (const key in collectionObj) found[key.toUpperCase()] = collectionObj[key];
+    }
+    return { found, cuteName };
+  }
+
+  const STORAGE_KEY_IGN = "bazaarFlipFinder_ign";
+  const STORAGE_KEY_APIKEY = "bazaarFlipFinder_apiKey";
+
+  function loadSavedCredentials() {
+    try {
+      const savedIgn = localStorage.getItem(STORAGE_KEY_IGN);
+      const savedKey = localStorage.getItem(STORAGE_KEY_APIKEY);
+      if (savedIgn) document.getElementById("ignInput").value = savedIgn;
+      if (savedKey) document.getElementById("apiKeyInput").value = savedKey;
+    } catch (e) { }
+  }
+
+  function saveCredentials(username, apiKey) {
+    try {
+      localStorage.setItem(STORAGE_KEY_IGN, username);
+      localStorage.setItem(STORAGE_KEY_APIKEY, apiKey);
+    } catch (e) { }
+  }
+
+  function forgetCredentials() {
+    try {
+      localStorage.removeItem(STORAGE_KEY_IGN);
+      localStorage.removeItem(STORAGE_KEY_APIKEY);
+    } catch (e) { }
+    document.getElementById("ignInput").value = "";
+    document.getElementById("apiKeyInput").value = "";
+    const status = document.getElementById("lookupStatus");
+    status.textContent = "Forgot your saved username and key.";
+    status.className = "lookup-status";
+  }
+
+  document.getElementById("forgetLink").addEventListener("click", function(e) {
+    e.preventDefault();
+    forgetCredentials();
+  });
+
+  loadSavedCredentials();
+
+  async function handleLookup() {
+    const ignInput = document.getElementById("ignInput");
+    const apiKeyInput = document.getElementById("apiKeyInput");
+    const lookupBtn = document.getElementById("lookupBtn");
+    const status = document.getElementById("lookupStatus");
+    const username = ignInput.value.trim();
+    const apiKey = apiKeyInput.value.trim();
+
+    if (!username || !apiKey) {
+      status.textContent = "Enter both your username and your API key.";
+      status.className = "lookup-status bad";
+      return;
+    }
+
+    lookupBtn.disabled = true;
+    status.textContent = "Looking up " + username + "...";
+    status.className = "lookup-status";
+
+    try {
+      const { found, cuteName } = await fetchCollections(username, apiKey);
+      myCollections = found;
+      saveCredentials(username, apiKey);
+
+      const neededKeys = Array.from(new Set(RECIPES.map(r => r.req).filter(r => r !== null).map(r => r.key)));
+      const have = neededKeys.filter(k => found[k] !== undefined);
+      status.textContent = "Read your " + cuteName + " profile — found collection data for " + have.length + " of " + neededKeys.length + " tracked types. The list below now shows only what you can actually craft.";
+      status.className = "lookup-status ok";
+      handleFind();
+    } catch (err) {
+      status.textContent = "Couldn't fetch that: " + err.message;
+      status.className = "lookup-status bad";
+    }
+    lookupBtn.disabled = false;
+  }
+
+  document.getElementById("lookupBtn").addEventListener("click", handleLookup);
+  document.getElementById("apiKeyInput").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") handleLookup();
+  });
+
+  function handleFind() {
+    const input = document.getElementById("budgetInput");
+    const errorMsg = document.getElementById("errorMsg");
+    const sortSelect = document.getElementById("sortSelect");
+    const budget = parseBudget(input.value);
+
+    if (budget === null || budget <= 0) {
+      errorMsg.textContent = "Enter a valid budget, like 10m or 500000.";
+      errorMsg.style.display = "block";
+      document.getElementById("results").innerHTML = "";
+      document.getElementById("emptyState").style.display = "none";
+      document.getElementById("resultsNote").style.display = "none";
+      return;
+    }
+    errorMsg.style.display = "none";
+    render(budget, sortSelect.value);
+  }
+
+  document.getElementById("findBtn").addEventListener("click", handleFind);
+  document.getElementById("budgetInput").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") handleFind();
+  });
+  document.getElementById("sortSelect").addEventListener("change", function() {
+    const input = document.getElementById("budgetInput");
+    if (parseBudget(input.value) !== null) handleFind();
+  });
+
+  document.getElementById("budgetInput").value = "10m";
+  render(10000000, "profit");
+</script>
+</body>
+</html>
